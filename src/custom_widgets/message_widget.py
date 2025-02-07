@@ -804,12 +804,18 @@ class message(Gtk.Box):
         if text:
             parts = []
             pos = 0
+            text_copy = self.text
             for pattern_name, pattern in patterns:
-                for match in pattern.finditer(self.text[pos:]):
+                for match in pattern.finditer(text_copy[pos:]):
                     match_start, match_end = match.span()
 
+                    if pattern_name == "think":
+                        parts.append({"type": "think", "text": match.group(1)})
+                        text_copy = (" " * (match_end - match_start)) + text_copy[match_end:]
+                        continue
+
                     if pos < (match_start):
-                        normal_text = self.text[pos:(match_start)]
+                        normal_text = text_copy[pos:(match_start)]
                         parts.append({"type": "normal", "text": normal_text.strip()})
 
                     if pattern_name == "code":
@@ -821,7 +827,7 @@ class message(Gtk.Box):
                             }
                         )
                     elif pattern_name == "table":
-                        parts.append({"type": pattern_name, "text": text[match_start:match_end]})
+                        parts.append({"type": pattern_name, "text": text_copy[match_start:match_end]})
                     else:
                         parts.append({"type": pattern_name, "text": match.group(1)})
 

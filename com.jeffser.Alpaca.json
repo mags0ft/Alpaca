@@ -11,13 +11,14 @@
         "--device=all",
         "--socket=wayland",
         "--filesystem=/sys/module/amdgpu:ro",
-        "--env=LD_LIBRARY_PATH=/app/lib:/usr/lib/x86_64-linux-gnu/GL/default/lib:/usr/lib/x86_64-linux-gnu/openh264/extra:/usr/lib/x86_64-linux-gnu/openh264/extra:/usr/lib/sdk/llvm15/lib:/usr/lib/x86_64-linux-gnu/GL/default/lib:/usr/lib/ollama:/app/plugins/AMD/lib/ollama",
         "--talk-name=com.jeffser.Alpaca",
-        "--own-name=com.jeffser.Alpaca"
+        "--own-name=com.jeffser.Alpaca",
+        "--env=LD_LIBRARY_PATH=/app/lib:/usr/lib/x86_64-linux-gnu/GL/default/lib:/usr/lib/x86_64-linux-gnu/openh264/extra:/usr/lib/sdk/llvm15/lib:/usr/lib/ollama:/app/plugins/AMD/lib/ollama:/app/plugins/AMD/lib/ollama/rocm:/app/plugins/AMD/lib/ollama/rocm/rocblas/library/",
+        "--env=PATH=/app/bin:/app/plugins/Ollama/bin:/usr/bin"
     ],
     "add-extensions": {
     	"com.jeffser.Alpaca.Plugins": {
-    		"add-ld-path": "/app/plugins/AMD/lib/ollama",
+    		"add-ld-path": "/app/plugins/AMD/lib/ollama:/app/plugins/Ollama/lib/ollama",
     		"directory": "plugins",
     		"no-autodownload": true,
     		"autodelete": true,
@@ -452,50 +453,6 @@
             ]
         },
         {
-            "name": "ollama",
-            "buildsystem": "simple",
-            "build-commands": [
-            	"tar -xvf ollama.tgz -C ${FLATPAK_DEST}",
-            	"mkdir ${FLATPAK_DEST}/plugins"
-            ],
-            "sources": [
-            	{
-            		"type": "file",
-            		"url": "https://github.com/ollama/ollama/releases/download/v0.5.11/ollama-linux-amd64.tgz",
-            		"sha256": "aa386ce1c314686133f7abe9b561f3ef230f03f88bbdd1f583c951c4ab5378ad",
-		    	"only-arches": [
-		    		"x86_64"
-		    	],
-		    	"dest-filename": "ollama.tgz"
-            	},
-            	{
-            		"type": "file",
-            		"url": "https://github.com/ollama/ollama/releases/download/v0.5.11/ollama-linux-arm64.tgz",
-            		"sha256": "e4d858d2aea008f45fc9a66f62480dafb322fcdb707c8fcf3361a0ee2af37e4a",
-		    	"only-arches": [
-		    		"aarch64"
-		    	],
-		    	"dest-filename": "ollama.tgz"
-            	}
-            ]
-        },
-        {
-            "name": "libnuma",
-            "buildsystem": "autotools",
-            "build-commands": [
-            	"autoreconf -i",
-            	"make",
-            	"make install"
-            ],
-            "sources": [
-            	{
-        	    "type": "archive",
-        	    "url": "https://github.com/numactl/numactl/releases/download/v2.0.18/numactl-2.0.18.tar.gz",
-        	    "sha256": "b4fc0956317680579992d7815bc43d0538960dc73aa1dd8ca7e3806e30bc1274"
-            	}
-            ]
-        },
-        {
             "name": "vte",
             "buildsystem": "meson",
             "config-opts": ["-Dvapi=false"],
@@ -511,6 +468,9 @@
             "name": "alpaca",
             "builddir": true,
             "buildsystem": "meson",
+            "post-install": [
+                "mkdir -p ${FLATPAK_DEST}/plugins"
+            ],
             "sources": [
                 {
                     "type": "git",

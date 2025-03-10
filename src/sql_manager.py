@@ -56,7 +56,7 @@ class SQLiteConnection:
         connection and a cursor instance. The two latter ones can be None if
         the context is not entered yet.
         """
-        
+
         self.sql_path: str = sql_path
         self.sqlite_con: "Union[sqlite3.Connection, None]" = None
         self.cursor: "Union[sqlite3.Cursor, None]" = None
@@ -75,7 +75,7 @@ class SQLiteConnection:
         What to do once the context is exited again: commit and close the
         connection.
         """
-        
+
         self.sqlite_con.commit()
         self.sqlite_con.close()
 
@@ -162,7 +162,9 @@ class Instance:
                         generate_timestamped_uuid(),
                         "Alpaca",
                         "http://{}:11435".format(
-                            "127.0.0.1" if sys.platform == "win32" else "0.0.0.0"
+                            "127.0.0.1"
+                            if sys.platform == "win32"
+                            else "0.0.0.0"
                         ),
                         0.7,
                         0,
@@ -209,8 +211,8 @@ class Instance:
         with SQLiteConnection(self.sql_path) as c:
             chats = c.cursor.execute(
                 "SELECT chat.id, chat.name, MAX(message.date_time) AS \
-    latest_message_time FROM chat LEFT JOIN message ON chat.id = message.chat_id \
-    GROUP BY chat.id ORDER BY latest_message_time DESC"
+latest_message_time FROM chat LEFT JOIN message ON chat.id = message.chat_id \
+GROUP BY chat.id ORDER BY latest_message_time DESC"
             ).fetchall()
 
         return chats
@@ -218,8 +220,8 @@ class Instance:
     def get_messages(self, chat) -> list:
         with SQLiteConnection(self.sql_path) as c:
             messages = c.cursor.execute(
-                "SELECT id, role, model, date_time, content FROM message WHERE \
-    chat_id=?",
+                "SELECT id, role, model, date_time, content FROM message \
+WHERE chat_id=?",
                 (chat.chat_id,),
             ).fetchall()
 
@@ -232,6 +234,7 @@ class Instance:
     message_id=?",
                 (message.message_id,),
             ).fetchall()
+
         return attachments
 
     def export_db(self, chat, export_sql_path: str) -> None:
@@ -247,8 +250,8 @@ chat_id=?",
                 (chat.chat_id,),
             )
             c.cursor.execute(
-                "CREATE TABLE export.attachment AS SELECT a.* FROM attachment as \
-a JOIN message m ON a.message_id = m.id WHERE m.chat_id=?",
+                "CREATE TABLE export.attachment AS SELECT a.* FROM attachment \
+as a JOIN message m ON a.message_id = m.id WHERE m.chat_id=?",
                 (chat.chat_id,),
             )
 
@@ -270,13 +273,17 @@ a JOIN message m ON a.message_id = m.id WHERE m.chat_id=?",
     def delete_chat(self, chat) -> None:
         with SQLiteConnection(self.sql_path) as c:
             c.cursor.execute("DELETE FROM chat WHERE id=?", (chat.chat_id,))
+
             for message in c.cursor.execute(
                 "SELECT id FROM message WHERE chat_id=?", (chat.chat_id,)
             ).fetchall():
                 c.cursor.execute(
                     "DELETE FROM attachment WHERE message_id=?", (message[0],)
                 )
-            c.cursor.execute("DELETE FROM message WHERE chat_id=?", (chat.chat_id,))
+
+            c.cursor.execute(
+                "DELETE FROM message WHERE chat_id=?", (chat.chat_id,)
+            )
 
     def duplicate_chat(self, old_chat, new_chat) -> None:
         with SQLiteConnection(self.sql_path) as c:
@@ -284,15 +291,17 @@ a JOIN message m ON a.message_id = m.id WHERE m.chat_id=?",
                 "INSERT INTO chat (id, name) VALUES (?, ?)",
                 (new_chat.chat_id, new_chat.get_name()),
             )
+
             for message in c.cursor.execute(
-                "SELECT id, role, model, date_time, content FROM message WHERE \
-chat_id=?",
+                "SELECT id, role, model, date_time, content FROM message \
+WHERE chat_id=?",
                 (old_chat.chat_id,),
             ).fetchall():
                 new_message_id = generate_timestamped_uuid()
+
                 c.cursor.execute(
-                    "INSERT INTO message (id, chat_id, role, model, date_time, \
-content) VALUES (?, ?, ?, ?, ?, ?)",
+                    "INSERT INTO message (id, chat_id, role, model, \
+date_time, content) VALUES (?, ?, ?, ?, ?, ?)",
                     (
                         new_message_id,
                         new_chat.chat_id,
@@ -302,6 +311,7 @@ content) VALUES (?, ?, ?, ?, ?, ?)",
                         message[4],
                     ),
                 )
+
                 for attachment in c.cursor.execute(
                     "SELECT type, name, content FROM attachment WHERE \
 message_id=?",
@@ -326,10 +336,11 @@ content) VALUES (?, ?, ?, ?, ?)",
 
             # Check repeated chat.name
             for repeated_chat in c.cursor.execute(
-                "SELECT import.chat.id, import.chat.name FROM import.chat JOIN \
-chat dbchat ON import.chat.name = dbchat.name"
+                "SELECT import.chat.id, import.chat.name FROM import.chat \
+JOIN chat dbchat ON import.chat.name = dbchat.name"
             ).fetchall():
                 new_name = generate_numbered_name(repeated_chat[1], chat_names)
+
                 c.cursor.execute(
                     "UPDATE import.chat SET name=? WHERE id=?",
                     (new_name, repeated_chat[0]),
@@ -341,6 +352,7 @@ chat dbchat ON import.chat.name = dbchat.name"
 import.chat.id = dbchat.id"
             ).fetchall():
                 new_id = generate_timestamped_uuid()
+
                 c.cursor.execute(
                     "UPDATE import.chat SET id=? WHERE id=?",
                     (new_id, repeated_chat[0]),
@@ -356,8 +368,10 @@ import.chat.id = dbchat.id"
 dbmessage ON import.message.id = dbmessage.id"
             ).fetchall():
                 new_id = generate_timestamped_uuid()
+
                 c.cursor.execute(
-                    "UPDATE import.attachment SET message_id=? WHERE message_id=?",
+                    "UPDATE import.attachment SET message_id=? WHERE \
+message_id=?",
                     (new_id, repeated_message[0]),
                 )
                 c.cursor.execute(
@@ -371,6 +385,7 @@ dbmessage ON import.message.id = dbmessage.id"
 attachment dbattachment ON import.attachment.id = dbattachment.id"
             ).fetchall():
                 new_id = generate_timestamped_uuid()
+
                 c.cursor.execute(
                     "UPDATE import.attachment SET id=? WHERE id=?",
                     (new_id, repeated_attachment[0]),
@@ -378,13 +393,17 @@ attachment dbattachment ON import.attachment.id = dbattachment.id"
 
             # Import
             c.cursor.execute("INSERT INTO chat SELECT * FROM import.chat")
-            c.cursor.execute("INSERT INTO message SELECT * FROM import.message")
+            c.cursor.execute(
+                "INSERT INTO message SELECT * FROM import.message"
+            )
             c.cursor.execute(
                 "INSERT INTO attachment SELECT * FROM import.attachment"
             )
 
-            new_chats = c.cursor.execute("SELECT * FROM import.chat").fetchall()
-        
+            new_chats = c.cursor.execute(
+                "SELECT * FROM import.chat"
+            ).fetchall()
+
         return new_chats
 
     ##############
@@ -405,8 +424,8 @@ attachment dbattachment ON import.attachment.id = dbattachment.id"
                 "SELECT id FROM message WHERE id=?", (message.message_id,)
             ).fetchone():
                 c.cursor.execute(
-                    "UPDATE message SET chat_id=?, role=?, model=?, date_time=?, \
-content=? WHERE id=?",
+                    "UPDATE message SET chat_id=?, role=?, model=?, \
+date_time=?, content=? WHERE id=?",
                     (
                         (
                             force_chat_id
@@ -422,8 +441,8 @@ content=? WHERE id=?",
                 )
             else:
                 c.cursor.execute(
-                    "INSERT INTO message (id, chat_id, role, model, date_time, \
-content) VALUES (?, ?, ?, ?, ?, ?)",
+                    "INSERT INTO message (id, chat_id, role, model, \
+date_time, content) VALUES (?, ?, ?, ?, ?, ?)",
                     (
                         message.message_id,
                         (
@@ -440,9 +459,12 @@ content) VALUES (?, ?, ?, ?, ?, ?)",
 
     def delete_message(self, message) -> None:
         with SQLiteConnection(self.sql_path) as c:
-            c.cursor.execute("DELETE FROM message WHERE id=?", (message.message_id,))
             c.cursor.execute(
-                "DELETE FROM attachment WHERE message_id=?", (message.message_id,)
+                "DELETE FROM message WHERE id=?", (message.message_id,)
+            )
+            c.cursor.execute(
+                "DELETE FROM attachment WHERE message_id=?",
+                (message.message_id,),
             )
 
     def add_attachment(self, message, attachment) -> None:
@@ -587,8 +609,10 @@ VALUES (?, ?, ?, ?, ?)",
 
     def get_overrides(self):
         with SQLiteConnection(self.sql_path) as c:
-            result = c.cursor.execute("SELECT id, value FROM overrides").fetchall()
-        
+            result = c.cursor.execute(
+                "SELECT id, value FROM overrides"
+            ).fetchall()
+
         overrides = {}
         for row in result:
             overrides[row[0]] = row[1]
@@ -673,10 +697,13 @@ VALUES (?, ?, ?, ?, ?)",
                 placeholders = ", ".join("?" for _ in data)
                 values = tuple(data.values())
                 c.cursor.execute(
-                    f"INSERT INTO instances ({columns}) VALUES ({placeholders})",
+                    f"INSERT INTO instances ({columns}) VALUES \
+({placeholders})",
                     values,
                 )
 
     def delete_instance(self, instance_id: str):
         with SQLiteConnection(self.sql_path) as c:
-            c.cursor.execute("DELETE FROM instances WHERE id=?", (instance_id,))
+            c.cursor.execute(
+                "DELETE FROM instances WHERE id=?", (instance_id,)
+            )

@@ -50,7 +50,7 @@ class SQLiteConnection:
     This class manages the context for SQLite database connections.
     """
 
-    def __init__(self, sql_path: str):
+    def __init__(self, sql_path: str) -> None:
         """
         We define ourselves three attributes - a path for the database file, a
         connection and a cursor instance. The two latter ones can be None if
@@ -70,7 +70,9 @@ class SQLiteConnection:
         self.sqlite_con = sqlite3.connect(self.sql_path)
         self.cursor = self.sqlite_con.cursor()
 
-    def __exit__(self):
+        return self
+
+    def __exit__(self, exception_type, exception_val, traceback) -> None:
         """
         What to do once the context is exited again: commit and close the
         connection.
@@ -614,6 +616,7 @@ VALUES (?, ?, ?, ?, ?)",
             ).fetchall()
 
         overrides = {}
+
         for row in result:
             overrides[row[0]] = row[1]
 
@@ -689,6 +692,7 @@ VALUES (?, ?, ?, ?, ?)",
                 instance_id = data.pop("id", None)
                 set_clause = ", ".join(f"{key} = ?" for key in data.keys())
                 values = list(data.values()) + [instance_id]
+
                 c.cursor.execute(
                     f"UPDATE instances SET {set_clause} WHERE id=?", values
                 )
@@ -696,6 +700,7 @@ VALUES (?, ?, ?, ?, ?)",
                 columns = ", ".join(data.keys())
                 placeholders = ", ".join("?" for _ in data)
                 values = tuple(data.values())
+
                 c.cursor.execute(
                     f"INSERT INTO instances ({columns}) VALUES \
 ({placeholders})",

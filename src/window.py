@@ -398,11 +398,22 @@ class AlpacaWindow(Adw.ApplicationWindow):
         if system:
             current_chat.set_visible_child_name('content')
         else:
+            # We need to check if the instance is still activated or whether
+            # it got deactivated (due to an error, for example)
+            if self.get_current_instance().instance_type == "empty":
+                self.show_toast(
+                    _("The selected instance got deactivated. Activate it in the Instance Manager."),
+                    self.main_overlay
+                )
+
+                return
+            
             bot_id=self.generate_uuid()
             m_element_bot = current_chat.add_message(bot_id, datetime.now(), current_model, False)
             m_element_bot.set_text()
             m_element_bot.footer.options_button.set_sensitive(False)
             self.sql_instance.insert_or_update_message(m_element_bot)
+
             threading.Thread(target=self.get_current_instance().generate_message, args=(m_element_bot, current_model)).start()
 
     @Gtk.Template.Callback()
